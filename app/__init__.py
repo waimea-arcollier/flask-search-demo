@@ -27,6 +27,20 @@ app = Flask(__name__)
 def show_welcome():
     return render_template("pages/welcome.jinja")
 
+#-----------------------------------------------------------
+# Species list 
+#-----------------------------------------------------------
+def get_species():
+     with connect_db() as db:
+        sql = """
+            SELECT DISTINCT species
+            FROM creatures
+            ORDER BY species asc
+        """
+        params = ()
+        species_list = db.execute(sql, params).fetchall()
+
+        return render_template("pages/creature_list.jinja", species_list=species_list)
 
 #-----------------------------------------------------------
 # Creature list page - Show all the creatures
@@ -37,12 +51,36 @@ def show_all_creatures():
         sql = """
             SELECT id, species, name
             FROM creatures
+            ORDER BY name asc
         """
         params = ()
         creatures = db.execute(sql, params).fetchall()
 
         return render_template("pages/creature_list.jinja", creatures=creatures)
 
+#-----------------------------------------------------------
+# Search
+#-----------------------------------------------------------
+@app.get("/search")
+def process_search():
+    search_term = request.args.get("q", "")
+    search_match = f"%{search_term}%"
+
+    with connect_db() as db:
+        sql = """
+            SELECT id, species, name
+            FROM creatures
+            WHERE name LIKE ?
+            ORDER BY name asc
+        """
+        params = (search_match,)
+        creatures = db.execute(sql, params).fetchall()
+
+        return render_template(
+            "pages/creature_list.jinja",
+            creatures=creatures,
+            search_term=search_term
+        )
 
 #-----------------------------------------------------------
 # Help page - Show some help
